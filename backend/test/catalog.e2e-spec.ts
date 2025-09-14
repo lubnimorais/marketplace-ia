@@ -5,7 +5,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('CatalogController (e2e)', () => {
+describe('Catalog (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
