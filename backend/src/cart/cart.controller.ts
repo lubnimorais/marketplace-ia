@@ -4,7 +4,9 @@ import {
   Controller,
   Get,
   NotFoundException,
+  Param,
   Post,
+  Put,
 } from '@nestjs/common';
 import { CartService } from './cart.service';
 
@@ -36,5 +38,21 @@ export class CartController {
     }
 
     return cart;
+  }
+
+  @Put(':cartId/item/:productId')
+  async updateCartItem(
+    @Body() body: { quantity: number },
+    @Param('productId') productId: string,
+  ) {
+    if (!body.quantity || body.quantity <= 0) {
+      throw new BadRequestException('ProductId and Quantity are required');
+    }
+
+    return this.cartService.updateCartItemQuantity(
+      this.userId,
+      Number(productId),
+      body.quantity,
+    );
   }
 }

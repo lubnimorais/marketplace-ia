@@ -4,9 +4,18 @@ import { PostgresService } from '../shared/postgres.service';
 type ICart = {
   id: number;
   user_id: number;
+  created_at: Date;
   store_id: number;
   active: boolean;
-  created_at: Date;
+  store: {
+    name: string;
+  };
+  items: {
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[];
 };
 
 @Injectable()
@@ -20,6 +29,37 @@ export class CartService {
 
     if (product.rows.length === 0) {
       throw new NotFoundException('Product not found');
+    }
+
+    const existingCart = await this.postgresService.client.query<{
+      id: number;
+      store_id: number;
+    }>(`SELECT id, store_id FROM carts WHERE user_id = $1 AND active = true`, [
+      userId,
+    ]);
+
+    if (
+      existingCart.rows.length > 0 &&
+      existingCart.rows[0].store_id === product.rows[0].store_id
+    ) {
+      await this.postgresService.client.query(
+        `INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3) ON CONFLICT (cart_id, product_id) DO UPDATE SET quantity = cart_items.quantity + EXCLUDED.quantity`,
+        [existingCart.rows[0].id, productId, quantity],
+      );
+
+      return {
+        id: existingCart.rows[0].id,
+      };
+    }
+
+    if (
+      existingCart.rows.length > 0 &&
+      existingCart.rows[0].store_id !== product.rows[0].store_id
+    ) {
+      await this.postgresService.client.query(
+        `UPDATE carts SET active = false WHERE id = $1`,
+        [existingCart.rows[0].id],
+      );
     }
 
     const cart = await this.postgresService.client.query<{ id: number }>(
@@ -58,5 +98,26 @@ export class CartService {
     );
 
     return result.rows[0] ?? null;
+  }
+
+  async updateCartItemQuantity(
+    userId: number,
+    productId: number,
+    quantity: number,
+  ) {
+    const cart = await this.getCart(userId);
+
+    if (!cart) {
+      throw new NotFoundException('Cart not found');
+    }
+
+    if (cart.items.every((item) => item.id !== productId)) {
+      throw new NotFoundException('Product not found in cart');
+    }
+
+    await this.postgresService.client.query(
+      `UPDATE cart_items SET quantity = $1 WHERE cart_id = $2 AND product_id = $3`,
+      [quantity, cart.id, productId],
+    );
   }
 }
