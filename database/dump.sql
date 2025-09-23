@@ -40,12 +40,12 @@ CREATE TABLE cart_items (
     cart_id INTEGER REFERENCES carts(id),
     product_id INTEGER REFERENCES products(id),
     quantity INTEGER NOT NULL DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_cart_product UNIQUE (cart_id, product_id)
 );
 
 INSERT INTO users (name, email, password) VALUES
-  ('John Doe', 'johndoe@email.com', 'dummyhash')
+  ('John Doe', 'johndoe@email.com', 'dummyhash');
 
 -- Lojas
 INSERT INTO stores (name) VALUES
