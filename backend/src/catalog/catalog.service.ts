@@ -14,8 +14,8 @@ export class CatalogService {
   constructor(private readonly postgresService: PostgresService) {}
 
   async getCatalog(search = '') {
-    let query =
-      "SELECT products.id, products.name, products.price, products.embedding json_build_object('id', stores.id, 'name', stores.name) as store FROM products JOIN stores ON products.store_id = stores.id";
+    let query = `SELECT products.id, products.name, products.price, products.embedding, json_build_object('id', stores.id, 'name', stores.name) as store FROM products
+        JOIN stores ON products.store_id = stores.id`;
 
     if (search) {
       query += ` WHERE products.name ILIKE $1`;

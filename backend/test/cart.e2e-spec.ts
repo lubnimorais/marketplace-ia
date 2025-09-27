@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
-import { PostgresService } from '@//shared/postgres.service';
+import { PostgresService } from '../src/shared/postgres.service';
 
 describe('Cart (e2e)', () => {
   let app: INestApplication<App>;
@@ -19,13 +19,12 @@ describe('Cart (e2e)', () => {
     await app.init();
 
     postgresService = moduleFixture.get<PostgresService>(PostgresService);
-  });
-
-  afterEach(async () => {
     await postgresService.client.query(
       'TRUNCATE TABLE carts, cart_items RESTART IDENTITY CASCADE',
     );
+  });
 
+  afterEach(async () => {
     await app.close();
   });
 
@@ -38,9 +37,10 @@ describe('Cart (e2e)', () => {
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
 
-    const responseCart = await request(app.getHttpServer()).get('/cart');
+    const responseCart = await request(app.getHttpServer()).get('/cart/');
+
     expect(responseCart.status).toBe(200);
-    expect(responseCart.body.id).toBe(responseCart.body.id);
+    expect(responseCart.body.id).toBe(response.body.id);
     expect(responseCart.body.items[0].id).toBe(1);
     expect(responseCart.body.items[0].quantity).toBe(2);
   });
@@ -66,20 +66,21 @@ describe('Cart (e2e)', () => {
       quantity: 1,
     });
 
-    const responseCart = await request(app.getHttpServer()).get('/cart');
-    expect(responseCart.status).toBe(200);
+    expect(response2.status).toBe(201);
 
+    const responseCart = await request(app.getHttpServer()).get('/cart/');
+
+    expect(responseCart.status).toBe(200);
     expect(responseCart.body.id).toBe(response.body.id);
     expect(responseCart.body.id).toBe(response2.body.id);
     expect(responseCart.body.id).toBe(response3.body.id);
-
     expect(responseCart.body.items.length).toBe(2);
-
-    expect(responseCart.body.items[0].id).toBe(1);
-    expect(responseCart.body.items[0].quantity).toBe(2);
-
-    expect(responseCart.body.items[1].id).toBe(2);
-    expect(responseCart.body.items[1].quantity).toBe(4);
+    expect(responseCart.body.items).toContainEqual(
+      expect.objectContaining({ id: 1, quantity: 2 }),
+    );
+    expect(responseCart.body.items).toContainEqual(
+      expect.objectContaining({ id: 2, quantity: 4 }),
+    );
   });
 
   it('should create a new cart if the store is different', async () => {
@@ -87,20 +88,19 @@ describe('Cart (e2e)', () => {
       productId: 1,
       quantity: 2,
     });
-
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
 
     const response2 = await request(app.getHttpServer()).post('/cart').send({
-      productId: 20,
+      productId: 17,
       quantity: 3,
     });
-
     expect(response2.status).toBe(201);
     expect(response2.body).toHaveProperty('id');
     expect(response2.body.id).not.toBe(response.body.id);
 
-    const responseCart = await request(app.getHttpServer()).get('/cart');
+    const responseCart = await request(app.getHttpServer()).get('/cart/');
+
     expect(responseCart.status).toBe(200);
     expect(responseCart.body.id).toBe(response2.body.id);
   });
@@ -110,23 +110,42 @@ describe('Cart (e2e)', () => {
       productId: 1,
       quantity: 2,
     });
-
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('id');
 
     const response2 = await request(app.getHttpServer())
-      .put(`/cart/${response.body.id}/item/1`)
+      .put(`/cart/${response.body.id}/items/1`)
       .send({
         quantity: 5,
       });
-
     expect(response2.status).toBe(200);
 
     const responseCart = await request(app.getHttpServer()).get('/cart');
+
     expect(responseCart.status).toBe(200);
     expect(responseCart.body.id).toBe(response.body.id);
     expect(responseCart.body.items.length).toBe(1);
     expect(responseCart.body.items[0].id).toBe(1);
     expect(responseCart.body.items[0].quantity).toBe(5);
+  });
+
+  it('should remove a product from the cart if quantity is 0', async () => {
+    const response = await request(app.getHttpServer()).post('/cart').send({
+      productId: 1,
+      quantity: 2,
+    });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toHaveProperty('id');
+
+    const response2 = await request(app.getHttpServer()).delete(
+      `/cart/${response.body.id}/items/1`,
+    );
+    expect(response2.status).toBe(200);
+
+    const responseCart = await request(app.getHttpServer()).get('/cart');
+    expect(responseCart.status).toBe(200);
+    expect(responseCart.body.id).toBe(response.body.id);
+    expect(responseCart.body.items.length).toBe(0);
   });
 });

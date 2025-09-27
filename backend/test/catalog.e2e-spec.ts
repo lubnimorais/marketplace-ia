@@ -35,6 +35,5 @@ describe('Catalog (e2e)', () => {
       .query({ search: 'feijão' });
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(2);
-    // expect(response.body).toBeGreaterThanOrEqual(2); maior ou igual a dois
   });
 });
