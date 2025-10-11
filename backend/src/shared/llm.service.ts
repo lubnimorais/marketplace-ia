@@ -58,19 +58,39 @@ export class LLMService {
     });
   }
 
+  async embedInput(input: string): Promise<{ embedding: number[] } | null> {
+    try {
+      console.log('LlmService.embedInput called with input:', input);
+
+      const response = await this.client.embeddings.create({
+        model: 'text-embedding-3-small',
+        input,
+      });
+
+      console.log(
+        'LlmService.embedInput response:',
+        response.data[0].embedding.length,
+      );
+
+      return { embedding: response.data[0].embedding };
+    } catch (error) {
+      console.log('Error in LlmService.embedInput:', error);
+      return null;
+    }
+  }
+
   async answerMessage(
     message: string,
+    previousMessageId: string | null = null,
   ): Promise<(IAnswerMessage & { responseId: string }) | null> {
     try {
       console.log('LlmService.answerMessage called with message:', message);
 
       const response = await this.client.responses.parse({
+        previous_response_id: previousMessageId,
         model: 'gpt-4.1-nano',
-
         instructions: LLMService.ANSWER_MESSAGE_PROMPT,
-
         input: message,
-
         text: {
           format: zodTextFormat(answerMessageSchema, 'answerSchema'),
         },
@@ -83,6 +103,7 @@ export class LLMService {
       );
 
       if (!response.output_parsed) {
+        console.error('No parsed output in response', JSON.stringify(response));
         return null;
       }
 
