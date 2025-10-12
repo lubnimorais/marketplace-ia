@@ -2,7 +2,10 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // DESATIVANDO AS CONFIGURAÇÕES DO BODYPARSE
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+  });
   app.enableShutdownHooks();
   app.enableCors();
   await app.listen(process.env.PORT ?? 3000);

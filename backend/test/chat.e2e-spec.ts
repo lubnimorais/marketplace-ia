@@ -118,5 +118,5 @@ describe('Chat (e2e)', () => {
       'sender',
       'assistant',
     );
-  });
+  }, 30000);
 });
