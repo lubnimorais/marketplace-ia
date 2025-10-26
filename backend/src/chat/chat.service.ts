@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 
 import { PostgresService } from '../shared/postgres.service';
-import { LLMService } from '../shared/llm.service';
+import { LLMService } from '../shared/llm/llm.service';
 import { getChatSessions } from '../../../frontend/src/api';
 
 type ChatSession = {
